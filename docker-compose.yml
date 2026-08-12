@@ -1,0 +1,31 @@
+version: "3.8"
+
+services:
+  server:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=3000
+      - LLM_PROVIDER=${LLM_PROVIDER:-mock}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      - MODEL=${MODEL:-gpt-4o-mini}
+      - RUST_LOG=mini_agent_server=info
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  agent:
+    build: .
+    depends_on:
+      server:
+        condition: service_healthy
+    environment:
+      - SERVER_URL=http://server:3000
+    command: ["python3", "-m", "agent", "--server", "http://server:3000"]
+    stdin_open: true
+    tty: true
