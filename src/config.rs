@@ -21,31 +21,50 @@ pub struct Config {
     pub temperature: f64,
 }
 
+impl Default for Config {
+    /// Pure defaults with no `.env` or process-environment side effects.
+    ///
+    /// This is also the canonical deterministic configuration for tests.
+    fn default() -> Self {
+        Self {
+            host: "127.0.0.1".to_string(),
+            port: 3000,
+            llm_provider: "mock".to_string(),
+            openai_api_key: String::new(),
+            openai_base_url: "https://api.openai.com/v1".to_string(),
+            model: "gpt-4o-mini".to_string(),
+            max_tokens: 2048,
+            temperature: 0.7,
+        }
+    }
+}
+
 impl Config {
     /// Load configuration from environment variables with sensible defaults.
     pub fn from_env() -> Self {
         // Try to load .env file (ignore if not found)
         let _ = dotenvy::dotenv();
 
+        let defaults = Self::default();
+
         Self {
-            host: env::var("HOST").unwrap_or_else(|_| "127.0.0.1".to_string()),
+            host: env::var("HOST").unwrap_or(defaults.host),
             port: env::var("PORT")
                 .ok()
                 .and_then(|v| v.parse().ok())
-                .unwrap_or(3000),
-            llm_provider: env::var("LLM_PROVIDER").unwrap_or_else(|_| "mock".to_string()),
-            openai_api_key: env::var("OPENAI_API_KEY").unwrap_or_default(),
-            openai_base_url: env::var("OPENAI_BASE_URL")
-                .unwrap_or_else(|_| "https://api.openai.com/v1".to_string()),
-            model: env::var("MODEL").unwrap_or_else(|_| "gpt-4o-mini".to_string()),
+                .unwrap_or(defaults.port),
+            llm_provider: env::var("LLM_PROVIDER").unwrap_or(defaults.llm_provider),
+            openai_api_key: env::var("OPENAI_API_KEY").unwrap_or(defaults.openai_api_key),
+            openai_base_url: env::var("OPENAI_BASE_URL").unwrap_or(defaults.openai_base_url),
+            model: env::var("MODEL").unwrap_or(defaults.model),
             max_tokens: env::var("MAX_TOKENS")
                 .ok()
                 .and_then(|v| v.parse().ok())
-                .unwrap_or(2048),
+                .unwrap_or(defaults.max_tokens),
             temperature: env::var("TEMPERATURE")
                 .ok()
                 .and_then(|v| v.parse().ok())
-                .unwrap_or(0.7),
+                .unwrap_or(defaults.temperature),
         }
     }
 
@@ -72,7 +91,7 @@ mod tests {
 
     #[test]
     fn test_default_config() {
-        let config = Config::from_env();
+        let config = Config::default();
         assert_eq!(config.host, "127.0.0.1");
         assert_eq!(config.port, 3000);
         assert!(config.is_mock());
@@ -80,7 +99,7 @@ mod tests {
 
     #[test]
     fn test_validate_mock_ok() {
-        let config = Config::from_env();
+        let config = Config::default();
         assert!(config.validate().is_ok());
     }
 }

@@ -15,6 +15,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "python"))
 from agent.tools import create_default_registry
 from agent.agent import Agent
 
+TEST_SERVER_URL = os.environ.get("TEST_SERVER_URL", "http://127.0.0.1:3000")
+
 
 class TestAgentWithoutServer:
     """
@@ -207,33 +209,33 @@ class TestServerIntegration:
     def check_server(self):
         """Skip tests if server is not running."""
         from agent.client import ServerClient
-        client = ServerClient()
+        client = ServerClient(TEST_SERVER_URL)
         if not client.is_server_running():
             pytest.skip("Rust server not running on localhost:3000")
 
     def test_health_endpoint(self):
         from agent.client import ServerClient
-        client = ServerClient()
+        client = ServerClient(TEST_SERVER_URL)
         health = client.health()
         assert health["status"] == "ok"
         assert "version" in health
 
     def test_tools_endpoint(self):
         from agent.client import ServerClient
-        client = ServerClient()
+        client = ServerClient(TEST_SERVER_URL)
         tools = client.list_tools()
         assert len(tools) >= 5
 
     def test_chat_endpoint(self):
         from agent.client import ServerClient
-        client = ServerClient()
+        client = ServerClient(TEST_SERVER_URL)
         response = client.chat([{"role": "user", "content": "你好"}])
         assert "content" in response or "tool_calls" in response
 
     def test_full_agent_loop(self):
         """Test the complete agent loop with real server."""
         agent = Agent(
-            server_url="http://127.0.0.1:3000",
+            server_url=TEST_SERVER_URL,
             tool_registry=create_default_registry(),
         )
         result = agent.chat("你好")

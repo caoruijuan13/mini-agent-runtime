@@ -64,12 +64,19 @@ class ServerClient:
             headers={"Accept": "text/event-stream"},
         )
         resp.raise_for_status()
+        # `requests` otherwise leaves text/event-stream without a charset as
+        # bytes; force incremental UTF-8 decoding so multibyte characters are
+        # not split into malformed SSE/JSON lines.
+        resp.encoding = "utf-8"
 
         for line in resp.iter_lines(decode_unicode=True):
             if not line:
                 continue
-            if line.startswith("data: "):
-                data_str = line[6:]
+            if isinstance(line, bytes):
+                line = line.decode("utf-8")
+            if line.startswith("data:"):
+                # SSE permits an optional single space after the field colon.
+                data_str = line[5:].lstrip(" ")
                 if data_str.strip() == "[DONE]":
                     break
                 try:

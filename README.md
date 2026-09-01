@@ -198,7 +198,7 @@ export MODEL=qwen2.5:7b
 ## Testing
 
 ```bash
-# Run all tests
+# Run deterministic QA (forces Mock mode and starts an isolated test server)
 bash scripts/test.sh
 
 # Rust tests only
@@ -206,6 +206,42 @@ cargo test
 
 # Python tests only
 python -m pytest tests/ -v
+```
+
+The QA command rejects skipped integration tests and writes a machine-readable
+report to `artifacts/qa-report.json`. Local `.env` model settings do not affect
+the test contract.
+
+## Performance Baseline
+
+Run the fixed Mock workload before and after infrastructure changes:
+
+```bash
+bash scripts/benchmark.sh
+```
+
+The benchmark performs three repetitions across short, medium, and long request
+payloads at concurrency levels 1, 5, 10, 20, and 50. It records:
+
+- client-observed latency (mean, p50, p95, p99, max)
+- request and provider-reported completion-token throughput
+- SSE time to first token/event (TTFT)
+- error rate and error classes
+- best-effort server CPU and resident-memory samples
+- coefficient of variation across repetitions
+
+Results are written to `artifacts/benchmark-report.json`. The workload contract,
+metric definitions, server configuration, raw runs, and repeatability summary
+are included in the report. Because the default run forces `LLM_PROVIDER=mock`,
+it measures the gateway and transport baseline rather than real-model inference.
+The command fails if any request fails or if a scenario's throughput coefficient
+of variation exceeds `0.20`; override the latter only with an explicitly justified
+`--max-throughput-cv` value.
+
+For a faster local smoke benchmark:
+
+```bash
+bash scripts/benchmark.sh --concurrency 1,5 --requests-per-case 5 --repetitions 1
 ```
 
 ## Docker
@@ -242,7 +278,10 @@ mini-agent-runtime/
 │   └── test_integration.py  # Integration tests
 ├── scripts/
 │   ├── run_demo.sh      # One-command demo
-│   └── test.sh          # Run all tests
+│   ├── test.sh          # Deterministic QA entry point
+│   ├── qa.py            # QA orchestration and JSON report
+│   ├── benchmark.sh     # Mock baseline entry point
+│   └── benchmark.py     # Concurrent JSON/SSE benchmark
 ├── Dockerfile
 ├── docker-compose.yml
 ├── Cargo.toml

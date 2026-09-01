@@ -190,7 +190,7 @@ mod tests {
     use tower::ServiceExt;
 
     fn test_state() -> Arc<AppState> {
-        let config = Config::from_env();
+        let config = Config::default();
         Arc::new(AppState {
             llm: LlmClient::new(config.clone()),
             config,
