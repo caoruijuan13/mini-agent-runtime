@@ -133,6 +133,18 @@ export MODEL=qwen2.5:7b
 
 > 更多配置见 `.env.example`，包含 9 种大模型的预设。
 
+## Technical Documentation
+
+The complete Chinese technical documentation is built with MkDocs:
+
+```bash
+python3 -m pip install -r requirements-docs.txt
+bash scripts/docs.sh serve
+```
+
+Use `bash scripts/docs.sh build` for a strict production build. Documentation
+source starts at [`docs/index.md`](docs/index.md).
+
 ## API Endpoints
 
 | Method | Path      | Description                     |
@@ -275,6 +287,8 @@ mini-agent-runtime/
 │   └── requirements.txt
 ├── tests/
 │   ├── test_tools.py        # Tool unit tests
+│   ├── test_client.py       # SSE client regression tests
+│   ├── test_benchmark.py    # Benchmark statistics tests
 │   └── test_integration.py  # Integration tests
 ├── scripts/
 │   ├── run_demo.sh      # One-command demo
@@ -282,6 +296,9 @@ mini-agent-runtime/
 │   ├── qa.py            # QA orchestration and JSON report
 │   ├── benchmark.sh     # Mock baseline entry point
 │   └── benchmark.py     # Concurrent JSON/SSE benchmark
+├── docs/                # MkDocs technical documentation
+├── mkdocs.yml           # Documentation navigation and strict validation
+├── requirements-docs.txt
 ├── Dockerfile
 ├── docker-compose.yml
 ├── Cargo.toml
