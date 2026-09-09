@@ -32,6 +32,8 @@
 5. 使用[性能基线](performance.md)比较优化前后的结果。
 6. 按[开发与扩展](development.md)增加 Provider、工具或基础设施能力。
 
+长期学习与项目演进请按[学习与优化路线图](roadmap.md)推进，逐阶段完成故障实验和验收。
+
 ## 代码入口
 
 - `src/main.rs`：Rust 服务启动入口。

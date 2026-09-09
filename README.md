@@ -145,6 +145,8 @@ bash scripts/docs.sh serve
 Use `bash scripts/docs.sh build` for a strict production build. Documentation
 source starts at [`docs/index.md`](docs/index.md).
 
+学习与项目优化计划见[学习与优化路线图](docs/roadmap.md)。
+
 ## API Endpoints
 
 | Method | Path      | Description                     |

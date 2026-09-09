@@ -24,6 +24,7 @@ nav:
   - 工程质量:
       - QA 与测试: quality.md
       - 性能基线: performance.md
+  - 学习与优化路线图: roadmap.md
   - 开发与扩展: development.md
   - 已知边界: limitations.md
 
