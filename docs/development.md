@@ -27,12 +27,13 @@
 
 主要文件：
 
-- `python/agent/agent.py`：消息状态和工具循环。
+- `python/agent/agent.py`：薄会话适配层。
+- `python/agent/runtime.py`：状态转换、预算和事件。
 - `python/agent/client.py`：服务客户端和 SSE 解码。
 - `python/agent/tools.py`：工具注册与执行。
 - `python/agent/__main__.py`：CLI 和展示回调。
 
-修改消息格式时，应同时检查 Rust 的 `ChatMessage`、真实 Provider 兼容性和 Agent 历史结构。
+修改消息格式时，应同时检查 Rust 的 `ChatMessage`、真实 Provider 兼容性、Runtime 历史结构和 `RunResult` 契约。
 
 ## 增加 Provider
 

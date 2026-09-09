@@ -17,14 +17,14 @@
 | 领域 | 已有基础 | 待补能力 |
 | --- | --- | --- |
 | 模型接入 | Rust HTTP 网关、Mock、JSON/SSE 接口 | 稳定事件协议、流式工具调用、错误分类 |
-| Agent 执行 | Python 多轮工具循环、最多 10 轮 | 统一执行状态、预算、取消与结构化结果 |
+| Agent 执行 | `AgentRuntime` 状态转换、最多 10 步、结构化 `RunResult`/事件 | 总时间预算、取消、恢复与结构化错误 |
 | 流式体验 | Python 客户端具备 SSE 读取入口 | Agent 当前仍调用非流式接口，再逐字符显示 |
 | 工具系统 | Rust 定义、Python 实现 | Schema 单一来源、参数验证、执行边界 |
 | 状态管理 | Python 内存中的消息历史 | 持久化、崩溃恢复、幂等与副作用处理 |
 | 工程证据 | 隔离 Mock QA、固定负载基准、文档构建 | 故障注入、资源释放证据、任务级评测 |
 | 服务治理 | 基础 Tracing | 有界队列、并发限制、请求关联、容量实验 |
 
-优先入口：`python/agent/agent.py`、`python/agent/client.py`、`src/llm.rs`、`src/server.rs`。现有边界见[已知边界](limitations.md)，验证方式见[QA](quality.md)和[性能基线](performance.md)。
+优先入口：`python/agent/runtime.py`、`python/agent/agent.py`、`python/agent/client.py`、`src/llm.rs`、`src/server.rs`。现有边界见[已知边界](limitations.md)，验证方式见[QA](quality.md)和[性能基线](performance.md)。
 
 ## 阶段总览
 
@@ -58,7 +58,7 @@
 
 **项目工作**：
 
-- 合并普通与流式路径重复的 Agent 逻辑，让两种输出方式共享状态转换。
+- 已将普通执行逻辑收敛到 `AgentRuntime`；后续为它定义独立的流式事件状态机，不再在应用层复制循环。
 - 定义内部事件：文本增量、工具调用增量、工具结果、结束、错误；携带 run ID、step ID 和必要的调用 ID。
 - 打通 Provider → Rust → Python → CLI 的真实流式链路，避免为了判断工具调用而先请求完整回答。
 - 按调用索引/ID 组装工具名称和参数；参数完整并通过 Schema 验证后才执行工具。

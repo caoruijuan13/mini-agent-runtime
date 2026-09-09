@@ -14,6 +14,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "python"))
 
 from agent.tools import create_default_registry
 from agent.agent import Agent
+from agent.runtime import RunStatus
 
 TEST_SERVER_URL = os.environ.get("TEST_SERVER_URL", "http://127.0.0.1:3000")
 
@@ -46,9 +47,13 @@ class TestAgentWithoutServer:
         assert len(agent.messages) == 0
 
     def test_system_prompt_added(self):
-        """Verify system prompt is injected on first message."""
-        agent = self._make_agent()
-        assert "mini-agent" in agent.system_prompt.lower()
+        """Verify prompting is an explicit application concern."""
+        agent = Agent(
+            server_url="http://localhost:9999",
+            tool_registry=create_default_registry(),
+            system_prompt="Use tools only when needed.",
+        )
+        assert agent.system_prompt == "Use tools only when needed."
 
     def test_tool_execution_weather(self):
         """Test that weather tool executes correctly."""
@@ -87,24 +92,17 @@ class TestAgentWithoutServer:
         result = agent.tools.execute("nonexistent", {})
         assert "Error" in result or "Unknown" in result
 
-    def test_tool_callbacks(self):
-        """Test that tool callbacks are invoked."""
-        tool_calls_log = []
-        tool_results_log = []
-
+    def test_runtime_events_are_observational(self):
+        """Runtime events replace tool-specific callback plumbing."""
+        events = []
         agent = Agent(
             server_url="http://localhost:9999",
             tool_registry=create_default_registry(),
-            on_tool_call=lambda name, args: tool_calls_log.append((name, args)),
-            on_tool_result=lambda name, result: tool_results_log.append((name, result)),
+            on_event=events.append,
         )
 
-        # Execute a tool directly
-        agent.tools.execute("calculate", {"expression": "1 + 1"})
-
-        # Callbacks are only triggered through the agent loop, not direct execution
-        # This tests the registry works standalone
         assert len(agent.tools.names) >= 5
+        assert events == []
 
 
 class TestMockAgentLoop:
@@ -175,7 +173,7 @@ class TestMockAgentLoop:
             server_url="http://localhost:9999",
             tool_registry=create_default_registry(),
         )
-        agent.MAX_ITERATIONS = 2
+        agent.runtime.config = agent.runtime.config.__class__(max_steps=2)
 
         # Mock client that always returns tool calls (infinite loop scenario)
         def mock_chat(messages, stream=False):
@@ -196,7 +194,14 @@ class TestMockAgentLoop:
 
         agent.client.chat = mock_chat
         result = agent.chat("infinite loop test")
-        assert "迭代" in result or "限制" in result
+        assert "步骤" in result or "限制" in result
+
+    def test_structured_run_result(self):
+        agent = self._make_agent_with_mock_client()
+        result = agent.run("计算 2 + 2")
+        assert result.status is RunStatus.COMPLETED
+        assert result.steps == 2
+        assert result.content is not None
 
 
 class TestServerIntegration:

@@ -48,10 +48,10 @@ A minimal yet full-featured AI agent runtime — **Rust server** + **Python agen
 - **Config** — Environment-based configuration with `.env` support
 
 ### Python Agent
-- **ReAct Loop** — Standard Reason+Act agent loop with tool calling
+- **Agent Runtime** — Explicit model/tool execution loop with bounded steps and runtime events
 - **5 Built-in Tools** — Weather, Calculator, Time, Translator, Knowledge Search
 - **Colorful Terminal** — Rich terminal UI with ANSI colors
-- **Streaming Output** — Real-time response rendering
+- **SSE Client** — Server-side streaming transport is available as an independent API
 - **Slash Commands** — `/help`, `/tools`, `/clear`, `/history`, `/quit`
 - **Callback System** — Extensible tool call/result hooks
 
@@ -283,7 +283,8 @@ mini-agent-runtime/
 │   ├── agent/
 │   │   ├── __init__.py
 │   │   ├── __main__.py  # Terminal chat UI
-│   │   ├── agent.py     # Agent core loop
+│   │   ├── agent.py     # Thin conversation adapter
+│   │   ├── runtime.py   # Runtime state transitions and events
 │   │   ├── client.py    # HTTP/SSE client
 │   │   └── tools.py     # Tool implementations
 │   └── requirements.txt
@@ -316,7 +317,7 @@ mini-agent-runtime/
 5. If **tool calls**: Agent executes tools locally, appends results, loops back to step 2
 6. If **text response**: Agent displays it to the user
 
-This is the classic **ReAct** (Reason + Act) pattern used by modern AI agents.
+The runtime implements the model → tool → model execution pattern used by modern AI agents; application prompts and terminal rendering stay outside the runtime kernel.
 
 ## License
 

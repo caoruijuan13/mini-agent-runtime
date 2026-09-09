@@ -135,6 +135,7 @@ def main() -> int:
                 "tests/test_tools.py",
                 "tests/test_benchmark.py",
                 "tests/test_client.py",
+                "tests/test_runtime.py",
                 "-q",
             ],
             env=qa_env,

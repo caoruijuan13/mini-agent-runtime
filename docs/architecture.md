@@ -21,15 +21,26 @@ Python CLI ── Agent ── Local Tool Registry
 
 ## 职责边界
 
-### Python Agent
+### Python 应用适配层
 
-Python 层拥有会话和行动能力：
+`Agent` 只负责应用侧会话：
 
 - 保存 system、user、assistant、tool 消息。
-- 判断模型响应是最终文本还是工具请求。
-- 解析工具参数并执行本地函数。
-- 把工具结果追加到消息历史后再次调用模型。
-- 通过回调向终端显示工具调用、结果和文本。
+- 追加用户输入。
+- 显式传递产品级 system prompt。
+- 暴露面向终端或 Web 的便利方法。
+
+它不再实现工具循环、伪流式展示或工具专用回调。
+
+### AgentRuntime
+
+`AgentRuntime` 是规范执行内核：
+
+- 请求模型并识别最终响应或工具调用。
+- 严格解析工具参数并执行工具。
+- 追加工具消息并继续状态转换。
+- 管理最大步骤数和终态。
+- 通过统一 `RuntimeEvent` 发出观察事件。
 
 ### Rust 服务
 
@@ -59,16 +70,16 @@ Rust 层是无状态模型网关：
 普通对话：
 
 ```text
-user → Python history → POST /chat → LLM → text → terminal
+user → Agent session → AgentRuntime → POST /chat → LLM → text → terminal
 ```
 
 工具调用：
 
 ```text
 user
-  → /chat
+  → AgentRuntime → /chat
   → assistant(tool_calls)
-  → Python tool execution
+  → Python ToolRegistry execution
   → tool result appended to history
   → /chat
   → final assistant text
@@ -80,7 +91,7 @@ user
 LLM byte stream → Rust SSE parser → Axum SSE events → HTTP client
 ```
 
-Python CLI 当前并未把最终回答接入这条完整流式链路，详见[模型与流式传输](llm-streaming.md)。
+AgentRuntime 当前并未把最终回答接入这条流式执行链路，详见[模型与流式传输](llm-streaming.md)。
 
 ## 运行时状态
 

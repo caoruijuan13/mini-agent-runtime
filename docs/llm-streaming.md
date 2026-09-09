@@ -43,9 +43,9 @@ Python 客户端强制以 UTF-8 解析 `text/event-stream`，并兼容 `data:` �
 
 ## 当前限制
 
-### CLI 不是真正端到端流式
+### Agent Runtime 当前不消费流式模型结果
 
-`Agent.chat_stream()` 会先通过非流式请求取得完整最终文本，再调用 `on_stream_chunk` 逐字符显示。因此终端看起来在流动，但不能降低真实模型的 TTFT。
+`AgentRuntime` 当前只使用非流式 `client.chat()` 完成状态转换。CLI 也只展示完整终态，不再提供“先完整请求、再逐字符播放”的伪流式 API。这样运行时语义保持单一路径，避免把展示效果误认为真实 TTFT。
 
 ### 流式工具调用未实现
 
@@ -57,7 +57,7 @@ Rust 的流式解析当前只读取 `delta.content`，`delta_tool_calls` 始终�
 
 ## 后续实现顺序
 
-1. 为 SSE 建立增量解析状态机。
+1. 为 Runtime 增加独立的流式事件执行协议，不把 SSE 字符直接塞进最终文本。
 2. 按 tool call ID 和参数片段组装 `delta.tool_calls`。
 3. 传播 finish reason、usage 和结构化错误事件。
 4. 让 Python Agent 直接消费流，并在发现工具调用后切换到执行阶段。

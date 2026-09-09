@@ -4,14 +4,13 @@ mini-agent — A colorful terminal chat interface for the AI agent.
 Usage:
     python -m agent
     python -m agent --server http://localhost:3000
-    python -m agent --no-stream
 """
 
 import argparse
 import sys
-import time
 
 from .agent import Agent
+from .runtime import RuntimeEvent
 from .tools import create_default_registry
 
 
@@ -106,28 +105,26 @@ def print_history(messages):
     print()
 
 
-def create_agent(server_url: str, stream: bool = True) -> Agent:
-    """Create and configure the agent with display callbacks."""
+def create_agent(server_url: str) -> Agent:
+    """Create the application adapter and its display observer."""
 
-    def on_tool_call(name: str, args: dict):
-        args_str = ", ".join(f"{k}={v!r}" for k, v in args.items())
-        print(colored(f"\n  🔧 调用工具: {name}({args_str})", Colors.YELLOW + Colors.ITALIC))
-
-    def on_tool_result(name: str, result: str):
-        lines = result.split("\n")
-        print(colored(f"  ✅ 工具结果 [{name}]:", Colors.GREEN))
-        for line in lines:
-            print(colored(f"     {line}", Colors.GRAY))
-
-    def on_stream_chunk(chunk: str):
-        print(chunk, end="", flush=True)
+    def on_event(event: RuntimeEvent):
+        if event.kind == "tool_requested":
+            name = event.data.get("name", "unknown")
+            args = event.data.get("arguments", "{}")
+            print(colored(f"\n  🔧 请求工具: {name}({args})", Colors.YELLOW + Colors.ITALIC))
+        elif event.kind == "tool_completed":
+            name = event.data.get("name", "unknown")
+            result = str(event.data.get("content", ""))
+            print(colored(f"  ✅ 工具结果 [{name}]:", Colors.GREEN))
+            for line in result.split("\n"):
+                print(colored(f"     {line}", Colors.GRAY))
 
     return Agent(
         server_url=server_url,
         tool_registry=create_default_registry(),
-        on_tool_call=on_tool_call,
-        on_tool_result=on_tool_result,
-        on_stream_chunk=on_stream_chunk if stream else None,
+        system_prompt="Use tools only when needed and answer in the user's language.",
+        on_event=on_event,
     )
 
 
@@ -139,20 +136,13 @@ def main():
         default="http://127.0.0.1:3000",
         help="Server URL (default: http://127.0.0.1:3000)",
     )
-    parser.add_argument(
-        "--no-stream",
-        action="store_true",
-        help="Disable streaming output",
-    )
     args = parser.parse_args()
-
-    stream = not args.no_stream
 
     # Print banner
     print_banner()
 
     # Create agent
-    agent = create_agent(args.server, stream=stream)
+    agent = create_agent(args.server)
 
     # Check server connection
     print(colored("  连接服务器...", Colors.GRAY), end="", flush=True)
@@ -212,16 +202,10 @@ def main():
             # Process message through agent
             print()  # blank line before response
 
-            if stream:
-                print(colored("  🤖 Agent › ", Colors.CYAN + Colors.BOLD), end="", flush=True)
-                response = agent.chat_stream(user_input)
-                print()  # newline after streaming
-            else:
-                response = agent.chat(user_input)
-                # Display response
-                print(colored("  🤖 Agent › ", Colors.CYAN + Colors.BOLD))
-                for line in response.split("\n"):
-                    print(colored("  ", Colors.CYAN) + line)
+            response = agent.chat(user_input)
+            print(colored("  🤖 Agent › ", Colors.CYAN + Colors.BOLD))
+            for line in response.split("\n"):
+                print(colored("  ", Colors.CYAN) + line)
 
             print()  # blank line after response
 

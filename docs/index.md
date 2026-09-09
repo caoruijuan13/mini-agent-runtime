@@ -40,6 +40,7 @@
 - `src/server.rs`：路由、请求和响应类型。
 - `src/llm.rs`：真实模型与 Mock 模型客户端。
 - `src/tools.rs`：提交给模型的工具定义。
-- `python/agent/agent.py`：Agent 核心循环。
+- `python/agent/agent.py`：薄会话适配层。
+- `python/agent/runtime.py`：规范运行时核心。
 - `python/agent/tools.py`：工具实际实现。
 - `python/agent/client.py`：JSON/SSE HTTP 客户端。

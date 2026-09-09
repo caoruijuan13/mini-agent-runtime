@@ -4,7 +4,8 @@
 
 ## 功能边界
 
-- Python CLI 的最终文本流是本地逐字符显示，不是真正端到端模型流。
+- Agent Runtime 当前只走非流式模型路径；服务端 SSE 仍是独立的传输能力。
+- Runtime 目前只实现最大步骤预算，尚未实现总时间预算、取消令牌和持久化恢复。
 - Rust 流式解析不组装 `delta.tool_calls`。
 - SSE 响应不传递 Token usage。
 - Rust 与 Python 的工具 Schema 需要人工同步。
