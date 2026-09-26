@@ -8,7 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "python"))
 
 from agent.runtime import AgentRuntime, RunStatus, RuntimeConfig
-from agent.tools import create_default_registry
+from agent.tools import create_learning_registry
 
 
 class FakeClient:
@@ -24,7 +24,7 @@ def tool_call(arguments):
         "id": "call_1",
         "type": "function",
         "function": {
-            "name": "calculate",
+            "name": "add",
             "arguments": json.dumps(arguments),
         },
     }
@@ -34,10 +34,10 @@ def test_runtime_completes_tool_then_text():
     events = []
     runtime = AgentRuntime(
         FakeClient([
-            {"content": None, "tool_calls": [tool_call({"expression": "2 + 2"})], "finish_reason": "tool_calls"},
+            {"content": None, "tool_calls": [tool_call({"a": 2, "b": 2})], "finish_reason": "tool_calls"},
             {"content": "4", "tool_calls": None, "finish_reason": "stop"},
         ]),
-        create_default_registry(),
+        create_learning_registry(),
         on_event=events.append,
     )
 
@@ -60,13 +60,13 @@ def test_runtime_rejects_invalid_arguments_without_empty_fallback():
                 "tool_calls": [{
                     "id": "call_bad",
                     "type": "function",
-                    "function": {"name": "calculate", "arguments": "{"},
+                    "function": {"name": "add", "arguments": "{"},
                 }],
                 "finish_reason": "tool_calls",
             },
             {"content": "recovered", "tool_calls": None, "finish_reason": "stop"},
         ]),
-        create_default_registry(),
+        create_learning_registry(),
     )
 
     result = runtime.run([{"role": "user", "content": "test"}])
@@ -78,10 +78,10 @@ def test_runtime_rejects_invalid_arguments_without_empty_fallback():
 
 
 def test_runtime_has_explicit_max_steps_terminal_state():
-    response = {"content": None, "tool_calls": [tool_call({"expression": "1 + 1"})], "finish_reason": "tool_calls"}
+    response = {"content": None, "tool_calls": [tool_call({"a": 1, "b": 1})], "finish_reason": "tool_calls"}
     runtime = AgentRuntime(
         FakeClient([response, response]),
-        create_default_registry(),
+        create_learning_registry(),
         RuntimeConfig(max_steps=2),
     )
 
@@ -94,8 +94,8 @@ def test_runtime_has_explicit_max_steps_terminal_state():
 
 def test_runtime_rejects_non_list_tool_calls_as_protocol_error():
     runtime = AgentRuntime(
-        FakeClient([{"content": None, "tool_calls": {"name": "calculate"}, "finish_reason": "tool_calls"}]),
-        create_default_registry(),
+        FakeClient([{"content": None, "tool_calls": {"name": "add"}, "finish_reason": "tool_calls"}]),
+        create_learning_registry(),
     )
 
     result = runtime.run([{"role": "user", "content": "bad response"}])
@@ -105,7 +105,7 @@ def test_runtime_rejects_non_list_tool_calls_as_protocol_error():
 
 
 def test_runtime_rejects_non_object_response():
-    runtime = AgentRuntime(FakeClient([None]), create_default_registry())
+    runtime = AgentRuntime(FakeClient([None]), create_learning_registry())
 
     result = runtime.run([{"role": "user", "content": "bad response"}])
 

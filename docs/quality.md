@@ -1,61 +1,23 @@
-# QA 与测试
-
-## 一键 QA
+# 验证当前代码
 
 ```bash
+python3 -m pip install -r python/requirements.txt
 bash scripts/test.sh
 ```
 
-入口会执行：
+执行 `tests/` 中全部 Python 测试，不启动服务，不访问网络。
 
-1. Rust 单元测试。
-2. Rust debug 服务构建。
-3. Python 工具、基准统计和 SSE 客户端单元测试。
-4. 启动绑定随机本地端口的独立 Mock 服务。
-5. 执行 Python 端到端测试。
-6. 写入 `artifacts/qa-report.json`。
+- `test_learning.py`：本地调用闭环、多轮历史、注入客户端、步数终止和标准库启动。
+- `test_runtime.py`：模型响应结构、工具参数和最大步数。
 
-任何命令失败或集成测试被跳过，QA 都会返回非零退出状态。
+原网关、SSE、模拟业务工具及基准测试随对应代码移除，不再列作当前验收能力。
+测试通过证明现有参考代码满足测试场景，不表示学习者已掌握全部内容。
 
-## 确定性契约
-
-- 强制 `LLM_PROVIDER=mock`。
-- 固定 `MODEL=mock-baseline`。
-- 测试服务使用随机可用端口。
-- 集成测试通过 `TEST_SERVER_URL` 指向隔离服务。
-- 不允许集成测试 skip。
-- 本地 `.env` 不改变 Rust 单元测试默认配置。
-
-## 报告结构
-
-报告的顶层字段包括：
-
-| 字段 | 说明 |
-| --- | --- |
-| `schema_version` | 报告 Schema 版本 |
-| `kind` | 固定为 `mini-agent-runtime-qa` |
-| `status` | `passed` 或 `failed` |
-| `git_revision` | 执行时 HEAD；工作区可能仍有未提交修改 |
-| `environment_contract` | 强制 Mock 配置和 skip 策略 |
-| `checks` | 每个检查的状态、耗时、计数和失败输出尾部 |
-
-`artifacts/` 被 Git 忽略，报告是本机证据，不是随源码维护的固定结论。
-
-## 单独执行
-
-```bash
-cargo test
-python3 -m pytest tests/test_tools.py -q
-python3 -m pytest tests/test_integration.py -q
-```
-
-直接执行集成测试时，如果没有服务会被跳过。因此发布或回归判断应使用 `scripts/test.sh`，而不是把单独 pytest 的零退出状态当作完整通过。
-
-## 文档质量
+## 文档检查
 
 ```bash
 python3 -m pip install -r requirements-docs.txt
 bash scripts/docs.sh build
 ```
 
-文档构建使用严格模式；导航遗漏、坏链接和无效锚点会阻止构建。
+严格构建检查导航和链接。后续仅为明确请求的实现添加适当验证。

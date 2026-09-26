@@ -1,5 +1,5 @@
 site_name: mini-agent-runtime 技术文档
-site_description: Rust 模型网关与 Python Agent 的架构、接口、测试和性能基线
+site_description: 由学习者主导的 Python Agent Runtime 学习项目
 docs_dir: docs
 site_dir: site
 strict: true
@@ -12,21 +12,13 @@ theme:
   highlightjs: true
 
 nav:
-  - 首页: index.md
-  - 快速开始: getting-started.md
-  - 架构设计: architecture.md
-  - 核心流程:
-      - Agent 循环: agent-loop.md
-      - 工具系统: tools.md
-      - 模型与流式传输: llm-streaming.md
-  - 服务接口: server-api.md
-  - 配置说明: configuration.md
-  - 工程质量:
-      - QA 与测试: quality.md
-      - 性能基线: performance.md
-  - 学习与优化路线图: roadmap.md
-  - 开发与扩展: development.md
-  - 已知边界: limitations.md
+  - 从这里开始: index.md
+  - 第一阶段: learning.md
+  - 候选路线: roadmap.md
+  - 参考:
+      - 运行时原理: agent-loop.md
+      - 验证: quality.md
+      - 当前边界: limitations.md
 
 markdown_extensions:
   - admonition

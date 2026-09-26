@@ -1,77 +1,47 @@
-# Agent 循环
+# 运行时参考
 
-核心实现位于 `python/agent/runtime.py`；`python/agent/agent.py` 只是会话适配层。
+这是已有实现的参考说明，不要求在第一阶段阅读或接受其设计。
 
-## 消息状态
-
-是否加入 system prompt 由应用适配层显式决定；Runtime 不内置人格、语言或产品策略。
-
-```json
-[
-  {"role": "system", "content": "..."},
-  {"role": "user", "content": "计算 2 + 2"},
-  {
-    "role": "assistant",
-    "content": null,
-    "tool_calls": [{"id": "call_1", "type": "function", "function": {"name": "calculate", "arguments": "{\"expression\":\"2 + 2\"}"}}]
-  },
-  {"role": "tool", "tool_call_id": "call_1", "name": "calculate", "content": "..."}
-]
-```
-
-`reset()` 会清空全部历史，下一次对话重新注入 system prompt。
-
-## 状态机
+## 数据流
 
 ```text
-append user message
-        │
-        ▼
-call Rust /chat
-        │
-        ├─ no tool_calls / finish_reason=stop ─→ append final text ─→ return
-        │
-        └─ tool_calls
-             ├─ append assistant tool request
-             ├─ parse arguments
-             ├─ execute each local tool
-             ├─ append each tool result
-             └─ repeat
+用户输入 → Agent（会话历史） → AgentRuntime.run()
+                                  ↓
+                             client.chat(history)
+                                  ↓
+                     普通文本 ← 响应 → 工具调用
+                        ↓                ↓
+                     返回结果      ToolRegistry.execute()
+                                         ↓
+                                  追加工具结果并再次请求
 ```
 
-循环最多执行 `RuntimeConfig.max_steps = 10` 次，防止模型持续请求工具形成无限循环。
+默认 `client` 是本地 `MockClient`，也可以显式注入实验用客户端。
+`ModelClient` 协议只描述调用边界。
 
-达到上限时返回 `RunStatus.MAX_STEPS`，而不是在运行内核中拼接面向用户的提示文本。
+## 阅读核心
 
-## 终态与事件
+- `mock.py`：教学响应；只识别 `add 数字 数字`，其它文本直接回显。
+- `tools.py`：注册器与 `add` 函数；元数据和可执行函数分别保存。
+- `runtime.py`：模型调用、工具执行、消息记录、步数预算和事件。
+- `agent.py`：保存多轮历史，可注入自定义客户端。
 
-一次 `AgentRuntime.run()` 返回 `RunResult`：
+## 终态与错误
 
-- `COMPLETED`：收到没有工具调用的最终模型响应。
-- `MAX_STEPS`：达到运行预算。
-- `FAILED`：模型客户端抛出异常。
+| 情况 | 行为 |
+| --- | --- |
+| 响应无工具调用 | 返回 `completed` |
+| 模型调用异常或响应结构错误 | 返回 `failed` |
+| 达到最大模型轮数 | 返回 `max_steps` |
+| 未知工具、参数解析失败、工具函数异常 | 把错误作为工具结果回传，模型可以继续 |
+| 事件观察者抛异常 | 忽略观察者错误，不改变运行状态 |
 
-Runtime 通过 `RuntimeEvent` 发出 `model_requested`、`model_responded`、`tool_requested`、`tool_completed`、`run_completed`、`run_failed` 和 `run_max_steps`。
+工具结果是字符串；这里的 `completed` 表示循环结束，不等于答案正确。
+注册器保存 Schema，但当前没有完整 JSON Schema 验证器。
+最大步数不是超时，也不能撤销已完成的工具操作。
 
-## 错误行为
+## 尚待完善的协议
 
-- 工具名不存在：注册表返回错误文本，随后作为工具结果交回模型。
-- 工具函数抛出异常：异常被转换为错误文本。
-- 工具参数不是有效 JSON：Runtime 生成工具错误结果，不再静默退化为空对象。
-- HTTP 或模型错误：Runtime 记录 `FAILED` 终态和错误文本；应用适配层决定如何展示或重试。
-- 达到最大迭代次数：返回中文警告文本。
-
-!!! warning "错误语义"
-    工具失败当前仍被编码为普通字符串，没有结构化 `is_error` 字段。模型只能根据文本推断失败。生产化时应改成明确的错误类型、错误码与可重试属性。
-
-## 观察者
-
-应用可以订阅统一的 `on_event(RuntimeEvent)`。CLI 只观察工具请求和工具结果并负责渲染；展示逻辑不应改变 Runtime 状态，也不应执行第二次工具调用。
-
-## 扩展建议
-
-- 为 Runtime 增加总时间预算和取消令牌。
-- 为请求、模型调用和工具调用引入超时预算。
-- 对工具参数执行 JSON Schema 校验。
-- 区分可重试错误、永久错误和用户取消。
-- 为消息数量和上下文 Token 设置上限。
+Runtime 当前只实现非流式执行。
+`finish_reason` 与工具字段的冲突检查、调用 ID 完整验证等仍需后续完善。
+详见[边界](limitations.md)及[路线图](roadmap.md)。

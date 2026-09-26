@@ -8,9 +8,9 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from .client import ServerClient
-from .runtime import AgentRuntime, RunResult, RunStatus, RuntimeConfig, RuntimeEvent
-from .tools import ToolRegistry
+from .runtime import AgentRuntime, ModelClient, RunResult, RunStatus, RuntimeConfig, RuntimeEvent
+from .tools import ToolRegistry, create_learning_registry
+from .mock import MockClient
 
 
 class Agent:
@@ -18,14 +18,14 @@ class Agent:
 
     def __init__(
         self,
-        server_url: str = "http://127.0.0.1:3000",
         tool_registry: ToolRegistry | None = None,
         system_prompt: str | None = None,
         max_steps: int = 10,
         on_event: Callable[[RuntimeEvent], None] | None = None,
+        client: ModelClient | None = None,
     ):
-        self.client = ServerClient(server_url)
-        self.tools = tool_registry or ToolRegistry()
+        self.client = client if client is not None else MockClient()
+        self.tools = tool_registry if tool_registry is not None else create_learning_registry()
         self.system_prompt = system_prompt
         self.messages: list[dict[str, Any]] = []
         self.runtime = AgentRuntime(

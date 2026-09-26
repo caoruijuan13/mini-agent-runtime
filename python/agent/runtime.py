@@ -9,10 +9,16 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable
+from typing import Any, Callable, Protocol
 
-from .client import ServerClient
 from .tools import ToolRegistry
+
+
+class ModelClient(Protocol):
+    """运行时只依赖这个调用接口，无需知道模型在本地还是 HTTP 后面。"""
+
+    def chat(self, messages: list[dict[str, Any]], stream: bool = False) -> dict:
+        ...
 
 
 class RunStatus(str, Enum):
@@ -59,7 +65,7 @@ class AgentRuntime:
 
     def __init__(
         self,
-        client: ServerClient,
+        client: ModelClient,
         tools: ToolRegistry,
         config: RuntimeConfig | None = None,
         on_event: Callable[[RuntimeEvent], None] | None = None,
